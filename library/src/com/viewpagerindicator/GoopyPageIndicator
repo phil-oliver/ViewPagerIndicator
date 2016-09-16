@@ -58,7 +58,6 @@ public class GoopyPageIndicator extends View implements PageIndicator {
     private ViewPager mViewPager;
     private ViewPager.OnPageChangeListener mListener;
     private int mCurrentPage;
-    private int mSnapPage;
     private float mPageOffset;
     private int mScrollState;
     private int mOrientation;
@@ -448,7 +447,6 @@ public class GoopyPageIndicator extends View implements PageIndicator {
     public void onPageSelected(int position) {
         if (mSnap || mScrollState == ViewPager.SCROLL_STATE_IDLE) {
             mCurrentPage = position;
-            mSnapPage = position;
             invalidate();
         }
 
@@ -533,7 +531,6 @@ public class GoopyPageIndicator extends View implements PageIndicator {
         SavedState savedState = (SavedState) state;
         super.onRestoreInstanceState(savedState.getSuperState());
         mCurrentPage = savedState.currentPage;
-        mSnapPage = savedState.currentPage;
         requestLayout();
     }
 
