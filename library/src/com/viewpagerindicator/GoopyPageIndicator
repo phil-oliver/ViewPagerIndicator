@@ -22,6 +22,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -38,10 +39,15 @@ import static android.widget.LinearLayout.HORIZONTAL;
 import static android.widget.LinearLayout.VERTICAL;
 
 /**
+ * Modified by Phil Oliver on 9/15/2016.
+ *
+ * This class is modification of {@link com.viewpagerindicator.CirclePageIndicator} that allows current position indicator to 'expand' to
+ * surrounding indicators and then 'shrink' to the new position.
+ * <p>
  * Draws circles (one for each view). The current view position is filled and
  * others are only stroked.
  */
-public class CirclePageIndicator extends View implements PageIndicator {
+public class GoopyPageIndicator extends View implements PageIndicator {
     private static final int INVALID_POINTER = -1;
 
     private float mRadius;
@@ -63,16 +69,20 @@ public class CirclePageIndicator extends View implements PageIndicator {
     private int mActivePointerId = INVALID_POINTER;
     private boolean mIsDragging;
 
+    private RectF connectorBounds;
+    private float headMoveOffset = 0.5f;
+    private float tailMoveOffset = 1 - headMoveOffset;
 
-    public CirclePageIndicator(Context context) {
+
+    public GoopyPageIndicator(Context context) {
         this(context, null);
     }
 
-    public CirclePageIndicator(Context context, AttributeSet attrs) {
+    public GoopyPageIndicator(Context context, AttributeSet attrs) {
         this(context, attrs, R.attr.vpiCirclePageIndicatorStyle);
     }
 
-    public CirclePageIndicator(Context context, AttributeSet attrs, int defStyle) {
+    public GoopyPageIndicator(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         if (isInEditMode()) return;
 
@@ -111,6 +121,8 @@ public class CirclePageIndicator extends View implements PageIndicator {
 
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         mTouchSlop = ViewConfigurationCompat.getScaledPagingTouchSlop(configuration);
+
+        connectorBounds = new RectF();
     }
 
 
@@ -263,19 +275,33 @@ public class CirclePageIndicator extends View implements PageIndicator {
             }
         }
 
-        //Draw the filled circle according to the current scroll
-        float cx = (mSnap ? mSnapPage : mCurrentPage) * threeRadius;
-        if (!mSnap) {
-            cx += mPageOffset * threeRadius;
-        }
+        float headX;
+        float headY;
+        float tailX;
+        float tailY;
+
+        //Draw the filled circles and connector according to the current scroll
         if (mOrientation == HORIZONTAL) {
-            dX = longOffset + cx;
-            dY = shortOffset;
+            headX = longOffset + getHeadDotOffset();
+            headY = shortOffset;
+
+            tailX = longOffset + getTailDotOffset();
+            tailY = shortOffset;
+
+            connectorBounds.set(headX, headY - mRadius, tailX, tailY + mRadius);
         } else {
-            dX = shortOffset;
-            dY = longOffset + cx;
+            headX = shortOffset;
+            headY = longOffset + getHeadDotOffset();
+
+            tailX = shortOffset;
+            tailY = longOffset + getTailDotOffset();
+
+            connectorBounds.set(headX - mRadius, headY, tailX + mRadius, tailY);
         }
-        canvas.drawCircle(dX, dY, mRadius, mPaintFill);
+
+        canvas.drawCircle(headX, headY, mRadius, mPaintFill);
+        canvas.drawRect(connectorBounds, mPaintFill);
+        canvas.drawCircle(tailX, tailY, mRadius, mPaintFill);
     }
 
     public boolean onTouchEvent(android.view.MotionEvent ev) {
@@ -551,5 +577,33 @@ public class CirclePageIndicator extends View implements PageIndicator {
                 return new SavedState[size];
             }
         };
+    }
+
+    private float getHeadDotOffset() {
+        float offsetScale = mPageOffset < headMoveOffset ? mPageOffset / headMoveOffset : 1f;
+
+        return getDotOffset(offsetScale);
+    }
+
+    private float getTailDotOffset() {
+        float offsetScale = mPageOffset > tailMoveOffset ? (mPageOffset - tailMoveOffset) / (1 - tailMoveOffset) : 0f;
+
+        return getDotOffset(offsetScale);
+    }
+
+    private float getDotOffset(float offsetScale) {
+        float currentPageCoord = getLongCoordForPosition(mCurrentPage);
+        float distanceToNextPos = getLongCoordForPosition(mCurrentPage + 1) - currentPageCoord;
+        return currentPageCoord + offsetScale * distanceToNextPos;
+    }
+
+    /**
+     * The long-axis coordinate offset (x-axis for Orientation.HORIZONTAL) of the indicator's center for the current ViewPager page
+     *
+     * @param position the position in the ViewPager
+     * @return
+     */
+    private float getLongCoordForPosition(int position) {
+        return position * mRadius * 3;
     }
 }
