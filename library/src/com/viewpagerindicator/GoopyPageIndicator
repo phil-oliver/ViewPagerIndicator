@@ -242,7 +242,7 @@ public class GoopyPageIndicator extends View implements PageIndicator {
         final float shortOffset = shortPaddingBefore + mRadius;
         float longOffset = longPaddingBefore + mRadius;
         if (mCentered) {
-            longOffset += ((longSize - longPaddingBefore - longPaddingAfter) / 2.0f) - (getLongCoordForPosition(count) / 2.0f);
+            longOffset += ((longSize - longPaddingBefore - longPaddingAfter) / 2.0f) - ((getLongCoordForPosition(count) - mRadius) / 2.0f);
         }
 
         float dX;
